@@ -30,6 +30,15 @@ def _is_unit_lecturer(user, unit):
     return user.role == 'lecturer' and unit.lecturer == user
 
 
+def _is_unit_lecturer_or_rep(user, unit):
+    """Lecturer owns the unit, or rep is enrolled in it."""
+    if user.role == 'lecturer':
+        return unit.lecturer == user
+    if user.role == 'rep':
+        return user.enrolled_units.filter(id=unit.id).exists()
+    return False
+
+
 def _check_unit_access(user, unit_id):
     """Return unit if user may access it, else raise 404."""
     return get_object_or_404(get_units_for_user(user), id=unit_id)
@@ -109,10 +118,10 @@ def assignment_list_create(request, unit_id):
         data = AssignmentSerializer(unit.assignments.all(), many=True, context={'request': request}).data
         return Response(data)
 
-    # POST — lecturer of this unit only
-    if not _is_unit_lecturer(request.user, unit):
+    # POST — lecturer or rep of this unit
+    if not _is_unit_lecturer_or_rep(request.user, unit):
         return Response(
-            {'detail': 'Only the unit lecturer can create assignments.'},
+            {'detail': 'Only the unit lecturer or class rep can create assignments.'},
             status=status.HTTP_403_FORBIDDEN,
         )
     serializer = AssignmentSerializer(data=request.data, context={'request': request})
@@ -160,9 +169,9 @@ def revision_list_create(request, unit_id):
         data = RevisionMaterialSerializer(unit.revision_materials.all(), many=True).data
         return Response(data)
 
-    if not _is_unit_lecturer(request.user, unit):
+    if not _is_unit_lecturer_or_rep(request.user, unit):
         return Response(
-            {'detail': 'Only the unit lecturer can upload revision materials.'},
+            {'detail': 'Only the unit lecturer or class rep can upload revision materials.'},
             status=status.HTTP_403_FORBIDDEN,
         )
     serializer = RevisionMaterialSerializer(data=request.data)
