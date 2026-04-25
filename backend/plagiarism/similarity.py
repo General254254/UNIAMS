@@ -21,6 +21,10 @@ def compute_similarity_matrix(texts: list) -> np.ndarray:
     # Replace blank documents with a sentinel to avoid zero-vector issues
     cleaned = [t.strip() if t.strip() else ' ' for t in texts]
 
-    vectorizer = TfidfVectorizer(stop_words='english', min_df=1)
-    tfidf_matrix = vectorizer.fit_transform(cleaned)
-    return cosine_similarity(tfidf_matrix)
+    try:
+        vectorizer = TfidfVectorizer(stop_words='english', min_df=1)
+        tfidf_matrix = vectorizer.fit_transform(cleaned)
+        return cosine_similarity(tfidf_matrix)
+    except ValueError:
+        # Empty vocabulary (e.g., all docs contain only stop words) - return zeros
+        return np.zeros((n, n))

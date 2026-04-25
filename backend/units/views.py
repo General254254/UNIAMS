@@ -61,10 +61,32 @@ def all_units(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def enroll_unit(request, unit_id):
-    """Allow any user to enroll in a unit."""
+    """Allow students to enroll in a unit."""
     unit = get_object_or_404(Unit, id=unit_id)
+
+    # Lecturers cannot enroll - they own units instead
+    if request.user.role == 'lecturer':
+        return Response(
+            {'detail': 'Lecturers cannot enroll in units. Create or own a unit instead.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Check if already enrolled
+    if request.user.enrolled_units.filter(id=unit.id).exists():
+        return Response(
+            {'detail': 'Already enrolled in this unit.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Cannot enroll in a unit you teach
+    if unit.lecturer == request.user:
+        return Response(
+            {'detail': 'Cannot enroll in a unit you teach.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     request.user.enrolled_units.add(unit)
-    return Response({'detail': 'Enrolled successfully.'})
+    return Response({'detail': 'Enrolled successfully.'}, status=status.HTTP_200_OK)
 
 
 
@@ -298,6 +320,9 @@ def trigger_plagiarism_check(request, unit_id, assignment_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def plagiarism_report(request, unit_id, assignment_id):
+    from plagiarism.extractor import extract_text
+    from plagiarism.similarity import compute_similarity_matrix
+
     unit = _check_unit_access(request.user, unit_id)
 
     if not _is_unit_lecturer(request.user, unit):
@@ -311,21 +336,47 @@ def plagiarism_report(request, unit_id, assignment_id):
         Submission.objects.filter(assignment=assignment).select_related('student')
     )
 
+    if len(submissions) < 2:
+        return Response({
+            'assignment': assignment.title,
+            'unit': unit.code,
+            'submissions': SubmissionSerializer(submissions, many=True).data,
+            'threshold': 0.75,
+            'pairs': [],
+            'flagged_count': 0,
+        })
+
+    texts = []
+    for sub in submissions:
+        try:
+            text = extract_text(sub.file.path) if sub.file else ''
+        except Exception:
+            text = ''
+        texts.append(text)
+
+    matrix = compute_similarity_matrix(texts)
+
     THRESHOLD = 0.75
     pairs = []
-    for i, s in enumerate(submissions):
-        for j, t in enumerate(submissions):
-            if i < j:
-                # Calculate pairwise score from their respective max scores or just re-calculate?
-                # Actually, the trigger_plagiarism_check view saves the max score for each student.
-                # For the report, it's better to show the specific pairwise score.
-                # Since we don't persist the whole matrix, we'll re-extract/calculate for the report if requested,
-                # or just use the saved max score for high-level flagging.
-                pass
+    flagged_count = 0
+    for i in range(len(submissions)):
+        for j in range(i + 1, len(submissions)):
+            score = float(matrix[i][j])
+            pair = {
+                'student_a': submissions[i].student.get_full_name() or submissions[i].student.username,
+                'student_b': submissions[j].student.get_full_name() or submissions[j].student.username,
+                'score': round(score, 4),
+                'flagged': score >= THRESHOLD,
+            }
+            pairs.append(pair)
+            if score >= THRESHOLD:
+                flagged_count += 1
 
     return Response({
         'assignment': assignment.title,
         'unit': unit.code,
         'submissions': SubmissionSerializer(submissions, many=True).data,
         'threshold': THRESHOLD,
+        'pairs': pairs,
+        'flagged_count': flagged_count,
     })

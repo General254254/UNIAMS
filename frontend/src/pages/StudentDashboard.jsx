@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, FileText, Calendar, Download, Inbox, Search } from 'lucide-react';
+import { BookOpen, FileText, Calendar, Download, Inbox, Search, CheckCircle2 } from 'lucide-react';
 import { useUnit } from '../context/UnitContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -11,7 +11,7 @@ import UploadModal from '../components/UploadModal';
 export default function StudentDashboard() {
   const { activeUnit } = useUnit();
   const { user } = useAuth();
-  
+
   const [assignments, setAssignments] = useState([]);
   const [revisions, setRevisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ export default function StudentDashboard() {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
       const [assnRes, revRes] = await Promise.all([
@@ -53,7 +53,7 @@ export default function StudentDashboard() {
     formData.append('assignment', selectedAssignmentId);
 
     try {
-      await api.post(`/units/${activeUnit.id}/submissions/`, formData, {
+      await api.post('/submissions/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast.success('Submission uploaded successfully');
@@ -91,7 +91,7 @@ export default function StudentDashboard() {
   const total = assignments.length;
   const submitted = assignments.filter(a => a.user_submission !== null).length;
   const pending = total - submitted;
-  
+
   const upcomingDeadlines = [...assignments]
     .filter(a => !a.user_submission && new Date(a.deadline) > new Date())
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
@@ -100,10 +100,10 @@ export default function StudentDashboard() {
   return (
     <div className="page-enter">
       <div className="flex flex-col lg:flex-row gap-8">
-        
+
         {/* Left Column (Main Content) - 2/3 */}
         <div className="flex-1 space-y-10">
-          
+
           {/* Assignments Section */}
           <section>
             <div className="flex items-center justify-between mb-6">
@@ -112,7 +112,7 @@ export default function StudentDashboard() {
                 <span className="bg-gray-100 text-gray-600 text-[12px] px-2 py-0.5 rounded-full font-semibold">{total}</span>
               </h2>
             </div>
-            
+
             <div className="space-y-4">
               {assignments.length === 0 ? (
                 <div className="card text-center py-12 border-dashed border-2">
@@ -124,7 +124,7 @@ export default function StudentDashboard() {
                 assignments.map(assn => {
                   const isSubmitted = !!assn.user_submission;
                   const isPastDeadline = new Date(assn.deadline) < new Date();
-                  
+
                   let statusBadge = null;
                   if (isSubmitted) {
                     statusBadge = <span className="badge-submitted px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider">Submitted</span>;
@@ -145,7 +145,7 @@ export default function StudentDashboard() {
                           <p className="text-[14px] text-gray-500 line-clamp-2 max-w-2xl mb-4 leading-relaxed">
                             {assn.description}
                           </p>
-                          
+
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 pt-4 border-t border-gray-100">
                             <div className="flex items-center gap-2">
                               <Calendar size={14} className="text-gray-400" />
@@ -163,9 +163,9 @@ export default function StudentDashboard() {
                           {statusBadge}
                           <div className="flex flex-col sm:flex-row gap-2 mt-auto">
                             {assn.file && (
-                              <a 
-                                href={assn.file} 
-                                target="_blank" 
+                              <a
+                                href={assn.file}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn-ghost whitespace-nowrap !h-10 !px-4 !text-[13px] text-green-700 hover:bg-green-50 border-green-100 flex items-center gap-2"
                               >
@@ -173,7 +173,7 @@ export default function StudentDashboard() {
                               </a>
                             )}
                             {!isSubmitted && (
-                              <button 
+                              <button
                                 onClick={() => {
                                   setSelectedAssignmentId(assn.id);
                                   setModalOpen(true);
@@ -183,7 +183,8 @@ export default function StudentDashboard() {
                                 Upload Submission
                               </button>
                             )}
-                           </div>
+                          </div>
+                          {isSubmitted && (
                             <div className="mt-auto flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
                               <CheckCircle2 size={16} />
                               <span className="text-[12px] font-bold">Uploaded</span>
@@ -203,7 +204,7 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-[18px] font-bold text-gray-800">Revision Materials</h2>
             </div>
-            
+
             {revisions.length === 0 ? (
               <div className="card text-center py-10 border-dashed border-2 bg-transparent shadow-none">
                 <FileText size={32} className="mx-auto text-gray-300 mb-3" />
@@ -220,9 +221,9 @@ export default function StudentDashboard() {
                       <h4 className="text-[14px] font-medium text-gray-800 truncate" title={rev.title}>{rev.title}</h4>
                       <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">PDF Document</span>
                     </div>
-                    <a 
-                      href={rev.file} 
-                      target="_blank" 
+                    <a
+                      href={rev.file}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-full transition-colors"
                       title="Download"
@@ -239,10 +240,10 @@ export default function StudentDashboard() {
 
         {/* Right Column (Sidebar/Stats) - 1/3 */}
         <div className="lg:w-[320px] shrink-0 space-y-6">
-          
+
           <div className="card border-0 bg-transparent p-0 hover:box-shadow-none hover:transform-none">
             <h2 className="text-[16px] font-bold text-gray-800 mb-4 px-1">Overview</h2>
-            
+
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="card p-5 border-gray-100 flex flex-col justify-between">
                 <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-2">Total</span>
@@ -253,7 +254,7 @@ export default function StudentDashboard() {
                 <span className="font-serif text-[40px] text-green-900 leading-none">{submitted}</span>
               </div>
             </div>
-            
+
             <div className="card p-5 border-amber-100 bg-amber-50/50 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-semibold text-amber-700 uppercase tracking-widest">Pending</span>
@@ -268,7 +269,7 @@ export default function StudentDashboard() {
               <Calendar size={16} className="text-gray-400" />
               Upcoming Deadlines
             </h3>
-            
+
             <div className="space-y-3">
               {upcomingDeadlines.length === 0 ? (
                 <p className="text-[13px] text-gray-500 italic">No approaching deadlines.</p>
@@ -288,7 +289,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      <UploadModal 
+      <UploadModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Upload Submission"

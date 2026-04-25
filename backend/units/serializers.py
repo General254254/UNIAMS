@@ -10,9 +10,18 @@ def _validate_file(file):
     """Validate file size and magic bytes (PDF = %PDF, DOCX = PK\\x03\\x04)."""
     if file.size > MAX_FILE_SIZE:
         raise serializers.ValidationError("File size must not exceed 10 MB.")
+
+    # Always check filename extension first
+    name = file.name.lower()
+    if not (name.endswith('.pdf') or name.endswith('.docx')):
+        raise serializers.ValidationError(
+            "Only PDF and DOCX files are allowed (invalid extension)."
+        )
+
     header = file.read(8)
     file.seek(0)
     is_pdf = header[:4] == b'%PDF'
+    # DOCX/ZIP starts with PK\x03\x04 but we also verify the extension above
     is_docx = header[:4] == b'PK\x03\x04'
     if not (is_pdf or is_docx):
         raise serializers.ValidationError(
@@ -31,6 +40,20 @@ class UnitSerializer(serializers.ModelSerializer):
         model = Unit
         fields = ['id', 'name', 'code', 'lecturer', 'lecturer_name', 'assignment_count', 'total_enrolled', 'created_at']
         read_only_fields = ['id', 'created_at', 'lecturer']
+
+    def validate_code(self, value):
+        value = value.strip().upper()
+        if not value:
+            raise serializers.ValidationError("Unit code is required.")
+        if Unit.objects.filter(code=value).exists():
+            raise serializers.ValidationError("A unit with this code already exists.")
+        return value
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Unit name is required.")
+        return value
 
     def get_assignment_count(self, obj):
         return obj.assignments.count()

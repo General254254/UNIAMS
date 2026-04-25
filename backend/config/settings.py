@@ -64,15 +64,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv(
-            'DATABASE_URL',
-            'postgresql://postgres:postgres@localhost:5432/ams_db'
-        ),
-        conn_max_age=600,
-    )
-}
+# Use SQLite for local development (no PostgreSQL required)
+# Set USE_POSTGRES=1 env var to use PostgreSQL
+if os.getenv('USE_POSTGRES'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv(
+                'DATABASE_URL',
+                'postgresql://postgres:postgres@localhost:5432/ams_db'
+            ),
+            conn_max_age=600,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -96,6 +106,13 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── Cache ────────────────────────────────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 # ── DRF ──────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -125,9 +142,10 @@ SIMPLE_JWT = {
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://localhost:517\d$",
-    r"^http://localhost:3000$",
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
