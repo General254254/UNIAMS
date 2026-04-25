@@ -166,7 +166,7 @@ def revision_list_create(request, unit_id):
     unit = _check_unit_access(request.user, unit_id)
 
     if request.method == 'GET':
-        data = RevisionMaterialSerializer(unit.revision_materials.all(), many=True).data
+        data = RevisionMaterialSerializer(unit.revision_materials.all(), many=True, context={'request': request}).data
         return Response(data)
 
     if not _is_unit_lecturer_or_rep(request.user, unit):
@@ -187,7 +187,7 @@ def revision_detail(request, unit_id, revision_id):
     revision = get_object_or_404(RevisionMaterial, id=revision_id, unit=unit)
 
     if request.method == 'GET':
-        return Response(RevisionMaterialSerializer(revision).data)
+        return Response(RevisionMaterialSerializer(revision, context={'request': request}).data)
 
     if not _is_unit_lecturer(request.user, unit):
         return Response(

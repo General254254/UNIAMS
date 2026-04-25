@@ -114,6 +114,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
 class RevisionMaterialSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.get_full_name', read_only=True)
     unit_code = serializers.CharField(source='unit.code', read_only=True)
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = RevisionMaterial
@@ -122,6 +123,14 @@ class RevisionMaterialSerializer(serializers.ModelSerializer):
             'description', 'uploaded_by', 'uploaded_by_name', 'uploaded_at',
         ]
         read_only_fields = ['uploaded_at', 'uploaded_by', 'unit', 'unit_code']
+
+    def get_file(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
     def validate_file(self, value):
         return _validate_file(value)

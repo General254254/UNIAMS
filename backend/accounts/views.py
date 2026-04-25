@@ -1,5 +1,4 @@
 from functools import wraps
-from time import time
 
 from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
@@ -13,26 +12,33 @@ from .serializers import UserProfileSerializer, UserRegisterSerializer
 
 User = get_user_model()
 
-# Simple rate limiting: 5 attempts per hour per IP
-RATE_LIMIT_ATTEMPTS = 100
-RATE_LIMIT_WINDOW = 60  # 1 hour
-
 
 def rate_limit_auth(view_func):
+    """Rate limit that only counts FAILED authentication attempts."""
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
         client_ip = request.META.get('REMOTE_ADDR', 'unknown')
-        cache_key = f"auth_attempt:{client_ip}"
+        attempts_key = f"auth_failed:{client_ip}"
+        blocked_key = f"auth_blocked:{client_ip}"
 
-        attempts = cache.get(cache_key, 0)
-        if attempts >= RATE_LIMIT_ATTEMPTS:
+        # Check if blocked (10 failed attempts in 15 minutes)
+        if cache.get(blocked_key):
             return Response(
-                {'detail': 'Too many attempts. Please try again later.'},
+                {'detail': 'Too many failed attempts. Try again in 15 minutes.'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
-        cache.set(cache_key, attempts + 1, RATE_LIMIT_WINDOW)
-        return view_func(request, *args, **kwargs)
+        # Call the view
+        response = view_func(request, *args, **kwargs)
+
+        # Only count failed attempts (400, 401), not successes (200, 201)
+        if response.status_code >= 400:
+            attempts = cache.get(attempts_key, 0) + 1
+            cache.set(attempts_key, attempts, 900)  # 15 min window
+            if attempts >= 10:
+                cache.set(blocked_key, True, 900)
+
+        return response
     return _wrapped
 
 
