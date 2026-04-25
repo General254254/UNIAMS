@@ -70,19 +70,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Use SQLite for local development (no PostgreSQL required)
-# Set USE_POSTGRES=1 env var to use PostgreSQL
-if os.getenv('USE_POSTGRES'):
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv(
-                'DATABASE_URL',
-                'postgresql://postgres:postgres@localhost:5432/ams_db'
-            ),
-            conn_max_age=600,
-        )
-    }
+# Database configuration
+# In production, DATABASE_URL must be set for PostgreSQL
+# If not set, falls back to SQLite (data loss on deploy!)
+DATABASE_URL = os.getenv('DATABASE_URL', '')
+
+if DATABASE_URL and ('postgres' in DATABASE_URL or 'postgis' in DATABASE_URL):
+    # Use PostgreSQL (production)
+    DATABASES = {'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)}
 else:
+    # Fall back to SQLite (local dev only)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

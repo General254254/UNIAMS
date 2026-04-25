@@ -4,8 +4,30 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    buildCommand: |
+      pip install -r requirements.txt
+      python -c "
+      import os
+      db_url = os.getenv('DATABASE_URL', '')
+      print('DATABASE_URL is:', 'SET (PostgreSQL)' if db_url and 'postgresql' in db_url else 'NOT SET or SQLite')
+      if not db_url:
+          print('WARNING: DATABASE_URL not set - falling back to SQLite')
+      "
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: |
+      python -c "
+      import os
+      import sys
+      import time
+      db_url = os.getenv('DATABASE_URL', '')
+      print(f'Starting with DATABASE_URL: {db_url[:20]}...' if db_url else 'ERROR: DATABASE_URL not set!')
+      if not db_url or 'sqlite' in db_url.lower():
+          print('WARNING: Using SQLite - data will be lost on deploy!')
+      else:
+          print('Using PostgreSQL - data is persistent')
+      "
+      gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -18,7 +40,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://your-netlify-site.netlify.app,https://ams-demo.netlify.app"
+        value: "https://unimas.netlify.app,https://unimas3.netlify.app"
       - key: USE_POSTGRES
         value: "1"
 
@@ -26,6 +48,7 @@ services:
     name: ams-db
     runtime: docker
     plan: free
+    autoDeploy: false
     image:
       url: public.ecr.aws/docker/library/postgres:16-alpine
     disk:
