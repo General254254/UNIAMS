@@ -5,7 +5,12 @@ from django.urls import include, path
 from django.http import JsonResponse
 
 def health_check(request):
-    return JsonResponse({'status': 'ok', 'version': '1.0'})
+    db_engine = settings.DATABASES['default'].get('ENGINE', 'unknown')
+    return JsonResponse({
+        'status': 'ok',
+        'version': '1.0',
+        'database': 'postgresql' if 'postgresql' in db_engine else 'other'
+    })
 
 urlpatterns = [
     path('', health_check),
