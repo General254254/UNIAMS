@@ -5,7 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_API_URL = "https://ams-backend.onrender.com/api"
+  VITE_API_URL = "https://ams-backend-vwwq.onrender.com/api"
 
 [[redirects]]
   from = "/*"
