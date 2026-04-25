@@ -11,7 +11,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Allow hosts from env, or defaults for local dev, plus Render domains
+_default_hosts = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS if h.strip()] + _default_hosts
+# Render auto-adds the service URL, so we also accept any hostname in production
+if not DEBUG:
+    ALLOWED_HOSTS += ['.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
