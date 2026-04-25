@@ -148,24 +148,44 @@ SIMPLE_JWT = {
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Allow origins from env var (comma-separated) or defaults for local dev
-_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
-if _cors_origins:
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
-else:
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-    ]
+# Base origins - localhost for dev
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "https://localhost:3000",
+]
 
-# Always allow Netlify preview/production URLs
+# Add env-defined origins
+_cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if _cors_env:
+    CORS_ALLOWED_ORIGINS += [o.strip() for o in _cors_env.split(',') if o.strip()]
+
+# In production, allow all Netlify and your specific domains
 if not DEBUG:
+    # Explicit Netlify URLs (add yours here)
+    CORS_ALLOWED_ORIGINS += [
+        "https://unimas.netlify.app",
+        "https://unimas3.netlify.app",
+    ]
+    # Also allow any netlify subdomain via regex
     CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^https://.*\.netlify\.app$",
+        r"^https://[\w-]+\.netlify\.app$",
     ]
 
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND = os.getenv(
