@@ -14,8 +14,8 @@ from .serializers import UserProfileSerializer, UserRegisterSerializer
 User = get_user_model()
 
 # Simple rate limiting: 5 attempts per hour per IP
-RATE_LIMIT_ATTEMPTS = 5
-RATE_LIMIT_WINDOW = 3600  # 1 hour
+RATE_LIMIT_ATTEMPTS = 100
+RATE_LIMIT_WINDOW = 60  # 1 hour
 
 
 def rate_limit_auth(view_func):
