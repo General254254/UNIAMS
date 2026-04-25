@@ -35,10 +35,8 @@ export default function RepDashboard() {
     // Fetch submissions only if not cached
     if (!submissions[assnId]) {
       try {
-        const { data } = await api.get(`/units/${activeUnit.id}/submissions/`);
-        // Filter submissions for this specific assignment
-        const filtered = data.filter(sub => sub.assignment === assnId);
-        setSubmissions(prev => ({ ...prev, [assnId]: filtered }));
+        const { data } = await api.get(`/units/${activeUnit.id}/assignments/${assnId}/submissions/`);
+        setSubmissions(prev => ({ ...prev, [assnId]: data }));
       } catch {
         toast.error('Failed to load submissions for this assignment');
         setExpandedAssn(null);

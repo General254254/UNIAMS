@@ -68,6 +68,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
     user_submission = serializers.SerializerMethodField()
     unit_code = serializers.CharField(source='unit.code', read_only=True)
     unit_name = serializers.CharField(source='unit.name', read_only=True)
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -77,6 +78,14 @@ class AssignmentSerializer(serializers.ModelSerializer):
             'total_enrolled', 'user_submission',
         ]
         read_only_fields = ['created_at', 'unit', 'unit_code', 'unit_name']
+
+    def get_file(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
     def get_submission_count(self, obj):
         return obj.submissions.count()
@@ -122,6 +131,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.get_full_name', read_only=True)
     assignment_title = serializers.CharField(source='assignment.title', read_only=True)
     unit_code = serializers.CharField(source='assignment.unit.code', read_only=True)
+    file = serializers.SerializerMethodField()
 
     class Meta:
         model = Submission
@@ -130,6 +140,14 @@ class SubmissionSerializer(serializers.ModelSerializer):
             'unit_code', 'file', 'submitted_at', 'similarity_score',
         ]
         read_only_fields = ['submitted_at', 'student', 'similarity_score', 'unit_code']
+
+    def get_file(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
     def validate_file(self, value):
         return _validate_file(value)

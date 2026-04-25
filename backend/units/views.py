@@ -129,7 +129,7 @@ def assignment_detail(request, unit_id, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id, unit=unit)
 
     if request.method == 'GET':
-        return Response(AssignmentSerializer(assignment).data)
+        return Response(AssignmentSerializer(assignment, context={'request': request}).data)
 
     if not _is_unit_lecturer(request.user, unit):
         return Response(
@@ -245,7 +245,7 @@ def assignment_submissions(request, unit_id, assignment_id):
 
     assignment = get_object_or_404(Assignment, id=assignment_id, unit=unit)
     subs = Submission.objects.filter(assignment=assignment).select_related('student')
-    return Response(SubmissionSerializer(subs, many=True).data)
+    return Response(SubmissionSerializer(subs, many=True, context={'request': request}).data)
 
 
 # ── ZIP download ──────────────────────────────────────────────────────────────
